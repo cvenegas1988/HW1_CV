@@ -1,0 +1,374 @@
+---
+title: "Homework Assignment 1"
+author: "Cesar Venegas"
+date: 'Assigned: Oct 24, 2020, Due Sun Nov 01, 2020 11:59PM'
+output:
+  
+  
+  html_document: 
+    
+    toc: true
+    toc_float: true
+    code_folding: hide
+  pdf_document: default
+---
+
+## HW-1 Instructions
+
+> Our class emphasizes clear communication of data analysis results to non-technical audiences. I expect your HTML output documents to be readable and well formatted. I expect you to put ample comments in your R code to make the code understandable. Along with accuracy of results, I am looking for quality of presentation as well. This homework is due by **11:59PM on Nov 01st**.  To complete this assignment, follow these steps:
+
+1. Create a new RStudio Project for this HW. Sync the project directory with a GitHub Repository (see instructions on Canvas on how to do that). 
+
+2. Download the `HW1.Rmd` file from Canvas. Save the file in the RStudio Project Directory. 
+
+3. Open `HW1.Rmd` in RStudio. Replace the "Your Name Here" text in the `author:` field with your name.
+
+4. Supply your solutions to the homework by editing `HW1.Rmd`.
+
+5. Run your code in the Console and Knit HTML frequently to check for errors.
+
+6. You may find it easier to solve a problem by interacting only with the Console at first. 
+
+7. When you have completed the homework please check that your knits correctly when you click `Knit HTML`.
+
+8. "Push" all your local changes to the GitHub Repo for the project.
+
+9. Submit your RMD file, the HTML output and a link to your GitHub Repo on Canvas.
+
+
+## Data frame basics
+
+We will continue working with the nycflights dataset we looked at in class. **Please be sure to keep the data file in the same directory as the RMD file - your project directory.**
+
+First - make sure that you are reading the data correctly and doing all the data cleaning steps that we did in class. Feel free to go beyond our class work in cleaning the data if you feel the need. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Reading the data
+
+
+```{r, cache=TRUE}
+nyc <- read.csv(file = "nycflights.csv")
+
+nyc$X <- NULL
+
+nyc$flight <- as.factor(nyc$flight)
+nyc$origin <- as.factor(nyc$origin)
+nyc$dest <- as.factor(nyc$dest)
+nyc$tailnum <- as.factor(nyc$tailnum)
+nyc$month <- as.factor(nyc$month)
+nyc$carrier <- as.factor(nyc$carrier)
+# Quick exploration of the data
+
+str(nyc)
+summary(nyc)
+
+```
+
+
+
+I now would like you to answer the following - all in their own separate R code blocks.
+
+### Data Exploration
+
+Let's first do some simple exploration of this data. 
+
+- How many airlines are there? (Hint: `levels` and `length` can be useful here)
+
+
+```{r}
+#How many airlines are there?
+length(levels(nyc$carrier))
+
+
+
+
+## How many flights there were by the airline with code `OO`? (Hint: `nrow` can be useful here along with logical indexing)
+
+OOF <- nyc[nyc$carrier == "OO", ]
+nrow(OOF)
+
+
+## How long is the shortest flight out of any NYC airport? (Hint: `min` can be useful, remember to handle `NA` values)
+
+
+min(nyc$distance, na.rm = TRUE)
+
+
+
+## How many flights where there by United Airlines (code: UA) on Jan 12th 2013?
+
+
+
+UAF <- nyc[nyc$carrier == "UA" & nyc$month == 1 & nyc$day == 12 & nyc$year == 2013,]
+nrow(UAF)
+```
+
+
+### Arrival Delay
+
+Lets focus on Arrival Delay.
+
+
+```{r}
+#What was the average arrival delay for all airports and all airlines combined in Jan 2013
+
+JAN <- nyc[nyc$month == 1, ]
+mean(JAN$arr_delay, na.rm = TRUE)
+
+
+##  Whats was the median arrival delay for all airports and all airlines combined in Jan 2013?
+
+median(JAN$arr_delay, na.rm = TRUE)
+```
+
+
+
+Based on your answers to the two questions above, what can you say about the distribution of arrival delays? Provide your answer in a text paragraph form.
+
+## we can say that the distribution of arrival delays is has less cases with positive arrival delays but with a higher dispersion. Thus, those fewer cases make the mean positive but the median negative.
+
+### Airline Performance
+
+Lets see if all airlines are equally terrible as far as flight arrival delays are concerned. For this question you will have to make sure that airline column is coded as a factor.
+
+
+```{r}
+#Calculate average arrival delays by airline (Hint: look up the command `tapply`)
+delay_AIR<- tapply(nyc$arr_delay, nyc$carrier, mean, na.rm = TRUE)
+delay_AIR
+
+#Draw a Bar Plot of Average Arrival Delays for all the Airlines (Hint: command for making a Bar Plot is simply `barplot`)
+barplot(delay_AIR)
+```
+
+
+
+- Which airline has the highest average arrival delay? Which airline has the smallest average arrival delay? Are there airlines that actually have negative average delay? Provide answer to this question in a text paragraph form using **inline R code**.
+
+```{r}
+# F9 Airline has the highest average arrival delay. AS airline has the smallest average delay being negative.
+# Yes, two airlines have negative average delay AS and HA airline
+```
+
+
+### Air Gain
+
+Create a new column named airgain such that airgain = (departure delay - arrival delay) : this is the amount of delay a flight made up while in air.
+
+```{r}
+## Air Gain
+
+#Creating airgain column:
+nyc$AG <- nyc$dep_delay - nyc$arr_delay
+summary(nyc$AG)
+
+#Average airgain by airline:
+airgain_AIR <- tapply(nyc$AG, nyc$carrier, mean, na.rm = TRUE)
+airgain_AIR
+
+#Visualization
+barplot(airgain_AIR)
+```
+
+
+
+
+
+a) Explore airgain data - calculate suitable descriptive statistics and appropriate graphics to better understand this data. This part is open ended - you do what you feel works best for you.
+
+b) Answer the questions:
+
+  - do airlines actually gain any time when in air on average? 
+
+  - Calculate average airgain for different airlines - which airlines do a better job, which do a worse job? 
+
+
+
+
+
+
+
+### Merging Data Frames
+
+> This section and the next is new compared to the class exercise. As you had an opportunity to work together in your breakout rooms for previous questions, this and the next section will carry a higher weight in grading for this HW.
+
+You can get detailed information about the physical planes in our dataset in this file: `planes.csv`. Download and save this file in your project directory.
+
+a) Read the `planes.csv` file using `read.csv` command. Do any data cleaning necessary.
+
+
+
+```{r, cache=TRUE}
+planes <- read.csv(file = "planes.csv")
+planes$tailnum <- as.factor(planes$tailnum)
+
+
+str(planes)
+summary(planes)
+```
+
+
+
+b) Merge the flights data and the planes data using the `merge` command. You should do the merge on the common column named `tailnum`. *getting this right may need some trial and error and getting some help*.
+
+```{r, cache=TRUE}
+# Merge data and convert some columns to factors
+# SInce I am going to focus on the performance of planes by different variables, I am going to use only the rows with data in both parts NYC and Planes
+
+Mdata <- merge(nyc, planes, by="tailnum" )
+
+Mdata$manufacturer <- as.factor(Mdata$manufacturer)
+Mdata$model <- as.factor(Mdata$model)
+Mdata$engine <- as.factor(Mdata$engine)
+Mdata$type <- as.factor(Mdata$type)
+
+nrow(nyc)
+nrow(Mdata)
+str(Mdata)
+summary(Mdata)
+
+
+```
+
+c) Now that you have a merged dataset, think of what interesting questions that you can ask that can be answered using the merged dataset. You are asked to pose five interesting questions and answer them. (For example: who are the top 10 manufacturers of planes that fly out of NYC airports?) **Be creative. Be bold. Ask questions that you would want to know answers to even if you were not doing this for a HW. **
+
+
+1) Best Manufacturer
+
+```{r, cache=TRUE}
+
+# BASE CASE FOR ALL QUESTIONS: I AM A MANAGER FROM AN IMPORTANT AIRLINE WHO IS IN CHARGE OF BUYING NEW PLANES AND THE PERFORMANCE OF THE CURRENT ONES
+# 1) What is the best Manufacturer more air gaining?
+
+AirGain_Manufacturer<- tapply(Mdata$AG, Mdata$manufacturer, mean, na.rm = TRUE)
+
+AirGain_Manufacturer<-sort(AirGain_Manufacturer, decreasing = TRUE, na.last = TRUE)
+AirGain_Manufacturer
+max(AirGain_Manufacturer)
+barplot(AirGain_Manufacturer)
+
+
+## It look like American Aircraft inc is the top performance manufcaturer with Airgaining of 17.2. 
+
+```
+
+```{r, cache=TRUE}
+## 2) what is the best model based on Air Gain?
+
+AirGain_Model<- tapply(Mdata$AG, Mdata$model, mean, na.rm = TRUE)
+AirGain_Model<-sort(AirGain_Model, decreasing = TRUE, na.last = TRUE)
+AirGain_Model
+barplot(AirGain_Model)
+# THe model 757-212 is the top performance in Air Gain 
+```
+```{r, cache=TRUE}
+## 3) According to the prvious analysis, I see some of models that are small models with low capacity. Since I work in a big airline I would like to focus on Big planes (>100 seats). Also, I noticed that Airgain is affected by the Air time so High Air time the higher the Air Gain, so I need to convert it to a ratio AirGain/ Air time in order to evaluate the performance. 
+
+# Explore Realive airgain performance in big planes in short and long distance. Any impact of Origin?
+
+library("ggplot2") 
+
+
+Mdata$Trip <- ifelse(Mdata$distance>1000, "LongD", "ShortD" )
+Mdata$plane_size<- ifelse(Mdata$seats>100, "Big", "Small" )
+Mdata$Airgain_ratio <- Mdata$AG*100/Mdata$air_time # Ratio to understand AirGain performance in relative terms
+
+
+BigPlanes <- Mdata[Mdata$plane_size =="Big",] # Filter by only big planes Seat higher than 100
+
+
+AirGain_TripB <- tapply(BigPlanes$AG, list(BigPlanes$Trip), mean, na.rm = TRUE)
+AirGain_TripB
+
+Airgain_ratioB <- tapply(BigPlanes$Airgain_ratio, list(BigPlanes$Trip), mean, na.rm = TRUE)
+Airgain_ratioB
+
+
+AirGain_Trip_Ratio_Model <- tapply(BigPlanes$Airgain_ratio, list(BigPlanes$Trip, BigPlanes$manufacturer), mean, na.rm = TRUE)
+AirGain_Trip_Ratio_Model
+
+barplot(AirGain_Trip_Ratio_Model)
+RatioC <- ggplot(data=BigPlanes, aes(x=distance, y=Airgain_ratio, colour=origin))
+RatioC + geom_smooth()
+
+RatioE <- ggplot(data=BigPlanes, aes(x=distance, y=AG, colour=origin))
+RatioE + geom_smooth()
+
+
+# Overall we see that the relatiove airGain performance is better in short distance (lower than 1000 miles distance). The number of manufactuerers offering big planes is reduced. Overall the more the distance the less the relative Air Gain performance. In general we can see that Origin shows difference in relative Air Gain performance only in the short distances, after 1000 miles the relative performance slightly decreases.
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r, cache=TRUE}
+## 4) What are the Most powerful engines for big planes?
+
+
+
+Bigplanes_Engine<- tapply(BigPlanes$AG, BigPlanes$engine, mean, na.rm = TRUE)
+Bigplanes_Engine
+barplot(Bigplanes_Engine)
+
+Bigplanes_EngineR<- tapply(BigPlanes$Airgain_ratio, list(BigPlanes$Trip, BigPlanes$engine), mean, na.rm = TRUE)
+Bigplanes_EngineR
+barplot(Bigplanes_EngineR)
+
+
+EngingGraph <- ggplot(data=BigPlanes, aes(x=distance, y=Airgain_ratio, colour=month))
+
+EngingGraph + geom_smooth() + facet_wrap(~ engine,)
+
+#THe most powerful engines are the Turbo Jet.
+
+
+
+
+
+```
+
+```{r, cache=TRUE}
+## 5) After analysis from Q1-Q4 I have a good idea about planes performance and big planes performance. Our company is evaluating expand to routes with less traffic, meaning we are evaluationg to buy small planes. What is the best Manufacturer/motor for Small Planes?
+
+SmallPlanes <- Mdata[Mdata$plane_size =="Small",]
+
+
+
+SmallPlanes_Performance<- round(tapply(SmallPlanes$Airgain_ratio, list(SmallPlanes$manufacturer, SmallPlanes$engine), mean, na.rm = TRUE,), digits = 2)
+SmallPlanes_Performance
+
+# In small planes, Bombardier with a Turbo-fan engine and then American Aircraft with a Reciprocating engines are the most powerful options
+
+
+```
+
+
+
+
+
+
+
+### Making Your HTML Look Nice
+
+We want our report to be good looking, professional documents. To that end, I am asking you to do the following:
+
+- Have a floating table of contents
+
+- Include code folding in your output. You can find more about code folding here: https://bookdown.org/yihui/rmarkdown/html-document.html#code-folding
+
+
+That's it. Once you are done, make sure everything works and knits well and then you can push your changes to the GitHub repo and uplaod the RMD flile and the html output to Canvas.
+
+**Have Fun!**
+
+Sanjeev
